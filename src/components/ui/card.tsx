@@ -1,12 +1,17 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+/*
+ * Card is the elevated surface. It borrows the `surface` utility (translucent
+ * border, inset top highlight, soft drop) so every card, panel and KPI tile
+ * reads as the same material.
+ */
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        "surface flex flex-col gap-6 rounded-lg py-6 text-card-foreground",
         className
       )}
       {...props}
@@ -31,7 +36,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("leading-none font-semibold tracking-tight", className)}
       {...props}
     />
   )

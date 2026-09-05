@@ -7,6 +7,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { runCycle, simulateFailure, type ActionOutcome } from "./_actions";
+import { cn } from "@/lib/utils";
 
 /**
  * The two controls that make the loop watchable: put a failure in, and let the
@@ -18,23 +19,28 @@ export function Controls() {
   const [result, setResult] = useState<ActionOutcome | null>(null);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col items-end gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <form
           action={(fd) => start(async () => setResult(await simulateFailure(fd)))}
-          className="flex items-center gap-2"
+          className="flex items-center gap-1.5 rounded-lg border border-white/6 bg-white/2 p-1 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]"
         >
-          <Input
-            name="amount"
-            type="number"
-            min="1"
-            step="1"
-            defaultValue="2499"
-            aria-label="Amount in rupees"
-            className="h-8 w-28 tabular text-sm"
-          />
+          <div className="relative">
+            <span className="text-muted-foreground/70 pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 font-mono text-xs">
+              ₹
+            </span>
+            <Input
+              name="amount"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue="2499"
+              aria-label="Amount in rupees"
+              className="num h-8 w-28 pl-6 text-[13px]"
+            />
+          </div>
           <Select name="reason" defaultValue="TRANSIENT">
-            <SelectTrigger className="h-8 w-[190px] text-sm" aria-label="Failure reason">
+            <SelectTrigger className="h-8 w-[190px] text-[13px]" size="sm" aria-label="Failure reason">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -55,18 +61,39 @@ export function Controls() {
           size="sm"
           disabled={pending}
           onClick={() => start(async () => setResult(await runCycle()))}
+          className="min-w-[104px]"
         >
-          {pending ? "Running…" : "Run cycle"}
+          {pending ? (
+            <>
+              <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-amber-400 shadow-[0_0_6px_1px_var(--color-amber-400)]" />
+              Running
+            </>
+          ) : (
+            "Run cycle"
+          )}
         </Button>
       </div>
 
       {result ? (
         <p
-          className={`text-xs ${result.ok ? "text-muted-foreground" : "text-foreground font-medium"}`}
+          className={cn(
+            "flex items-center gap-2 rounded-md border px-2.5 py-1 text-[11.5px] leading-4",
+            result.ok
+              ? "border-white/6 bg-white/2 text-muted-foreground"
+              : "border-rose-400/20 bg-rose-500/10 text-rose-200",
+          )}
           role="status"
         >
-          {result.ok ? "" : "Failed — "}
-          {result.message}
+          <span
+            aria-hidden
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              result.ok
+                ? "bg-emerald-400 shadow-[0_0_6px_1px_var(--color-emerald-400)]"
+                : "bg-rose-400 shadow-[0_0_6px_1px_var(--color-rose-400)]",
+            )}
+          />
+          <span className="num">{result.ok ? "" : "Failed — "}{result.message}</span>
         </p>
       ) : null}
     </div>

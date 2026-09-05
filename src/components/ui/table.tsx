@@ -3,6 +3,13 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+/*
+ * Dense data table. Rows alternate by 1.5% white, hover lifts to 3%, and the
+ * header stays pinned with a blurred backdrop so long books remain labelled
+ * while scrolling. Numerals are the caller's job: use `num` on any cell that
+ * holds money, counts or timestamps so columns align.
+ */
+
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
@@ -11,7 +18,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-[13px]", className)}
         {...props}
       />
     </div>
@@ -22,7 +29,10 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      className={cn(
+        "sticky top-0 z-10 bg-[#0e1117]/85 backdrop-blur-md [&_tr]:border-b [&_tr]:border-white/8 [&_tr]:hover:bg-transparent",
+        className
+      )}
       {...props}
     />
   )
@@ -32,7 +42,10 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
+      className={cn(
+        "[&_tr:last-child]:border-0 [&_tr:nth-child(even)]:bg-white/1.5",
+        className
+      )}
       {...props}
     />
   )
@@ -43,7 +56,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+        "border-t border-white/8 bg-white/2 font-medium [&>tr]:last:border-b-0",
         className
       )}
       {...props}
@@ -56,7 +69,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-white/6 transition-colors duration-150 hover:bg-white/3 has-aria-expanded:bg-white/3 data-[state=selected]:bg-white/5",
         className
       )}
       {...props}
@@ -69,7 +82,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-9 px-3 text-left align-middle text-[11px] font-semibold tracking-wider whitespace-nowrap uppercase text-muted-foreground/80 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -82,7 +95,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-3 py-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

@@ -1,21 +1,35 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCase } from "../../_data";
-import { Money, Panel, SourceBadge, StatePill } from "../../_ui";
+import { Money, Panel, PanelNote, RuleTag, SourceBadge, StatePill } from "../../_ui";
 import { formatINR } from "@/core/domain/money";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-/** Events that carry the most weight get a heavier rail on the timeline. */
-function weight(event: string): string {
-  if (event === "REVENUE_RECOVERED") return "border-foreground";
-  if (event === "POLICY_BLOCKED" || event === "ACTION_FAILED") return "border-foreground/50 border-dashed";
-  if (event === "AGENT_DECISION" || event === "POLICY_APPROVED") return "border-foreground/40";
-  return "border-border";
+/*
+ * Timeline rails share the console's state palette: emerald for money, rose
+ * for a refusal or failure, violet for the decider, sky for a verdict that let
+ * the action through. Everything else is neutral.
+ */
+function rail(event: string): { line: string; dot: string } {
+  if (event === "REVENUE_RECOVERED") {
+    return { line: "border-emerald-400/60", dot: "bg-emerald-400 shadow-[0_0_8px_1px_var(--color-emerald-400)]" };
+  }
+  if (event === "POLICY_BLOCKED" || event === "ACTION_FAILED") {
+    return { line: "border-rose-400/50", dot: "bg-rose-400 shadow-[0_0_8px_1px_var(--color-rose-400)]" };
+  }
+  if (event === "AGENT_DECISION") {
+    return { line: "border-violet-400/50", dot: "bg-violet-400 shadow-[0_0_8px_1px_var(--color-violet-400)]" };
+  }
+  if (event === "POLICY_APPROVED") {
+    return { line: "border-sky-400/50", dot: "bg-sky-400 shadow-[0_0_8px_1px_var(--color-sky-400)]" };
+  }
+  return { line: "border-white/10", dot: "bg-white/30" };
 }
 
 function summarise(event: string, detail: Record<string, unknown>): string[] {
@@ -69,11 +83,11 @@ function summarise(event: string, detail: Record<string, unknown>): string[] {
 
 function Facts({ rows }: { rows: Array<[string, React.ReactNode]> }) {
   return (
-    <dl className="grid grid-cols-[130px_1fr] gap-x-4 gap-y-1.5 px-4 py-3 text-sm">
+    <dl className="divide-y divide-white/5 px-4 text-[13px]">
       {rows.map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="text-muted-foreground text-[11px] tracking-wide uppercase self-center">{k}</dt>
-          <dd className="min-w-0 break-words">{v}</dd>
+        <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-x-4 py-2">
+          <dt className="eyebrow">{k}</dt>
+          <dd className="min-w-0 break-words text-foreground/90">{v}</dd>
         </div>
       ))}
     </dl>
@@ -81,6 +95,9 @@ function Facts({ rows }: { rows: Array<[string, React.ReactNode]> }) {
 }
 
 const stamp = (iso: string) => iso.replace("T", " ").slice(0, 19);
+const Code = ({ children, className }: { children: React.ReactNode; className?: string | undefined }) => (
+  <span className={cn("num text-xs", className)}>{children}</span>
+);
 
 export default async function CasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -93,34 +110,50 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   const link = c.actions.filter((a) => a.paymentLinkUrl !== null).at(-1) ?? null;
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-8">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-muted-foreground mb-1 text-xs">
-            <Link href="/" className="underline-offset-4 hover:underline">← All cases</Link>
-            <span className="mx-1.5">·</span>
-            <span className="font-mono">{c.id}</span>
+    <div className="mx-auto max-w-[1240px] px-6 py-7">
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <nav className="text-muted-foreground mb-2 flex items-center gap-1.5 text-xs">
+            <Link href="/" className="transition-colors hover:text-foreground">Overview</Link>
+            <span className="text-muted-foreground/40">/</span>
+            <span className="font-mono text-[11.5px]">{c.id}</span>
+          </nav>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-mono text-[20px] font-semibold tracking-tight">{c.paymentId}</h1>
+            <StatePill state={c.state} />
           </div>
-          <h1 className="font-mono text-lg font-semibold tracking-tight">{c.paymentId}</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <StatePill state={c.state} />
-          <span className="tabular text-xl font-semibold"><Money paise={c.amountPaise} /></span>
+        <div className="text-right">
+          <p className="eyebrow">Amount at risk</p>
+          <p className="num mt-1 text-[26px] leading-none font-semibold tracking-tight">
+            <Money paise={c.amountPaise} />
+          </p>
         </div>
       </header>
 
       {c.recoveredAmountPaise ? (
-        <p className="mb-6 rounded-md border-l-2 border-l-foreground border px-3 py-2 text-xs">
-          <span className="font-semibold">{formatINR(c.recoveredAmountPaise)} recovered.</span>{" "}
-          Written only after the payment provider confirmed the capture — an executed intervention
-          alone never counts.
-        </p>
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-emerald-400/20 bg-emerald-500/7 px-4 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
+          <span
+            aria-hidden
+            className="mt-1 size-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_2px_var(--color-emerald-400)]"
+          />
+          <p className="text-[13px] leading-relaxed text-emerald-100/90">
+            <span className="num font-semibold text-emerald-200">{formatINR(c.recoveredAmountPaise)} recovered.</span>{" "}
+            Written only after the payment provider confirmed the capture — an executed intervention
+            alone never counts.
+          </p>
+        </div>
       ) : null}
 
       {link ? (
         <Panel
           title="Payment link"
-          meta={link.provider === "razorpay_test" ? "Razorpay TEST mode" : link.provider}
+          tone={c.recoveredAmountPaise ? "emerald" : "sky"}
+          meta={
+            <Badge variant={link.provider === "razorpay_test" ? "sky" : "slate"} className="uppercase">
+              {link.provider === "razorpay_test" ? "Razorpay test mode" : link.provider}
+            </Badge>
+          }
           className="mb-4"
         >
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -129,21 +162,21 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
                 href={link.paymentLinkUrl!}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-sm underline underline-offset-4"
+                className="font-mono text-[13px] text-sky-300 underline-offset-4 transition-colors hover:text-sky-200 hover:underline"
               >
                 {link.paymentLinkUrl}
               </a>
               <p className="text-muted-foreground mt-1 font-mono text-[11px]">{link.externalRef}</p>
             </div>
-            <span className="text-muted-foreground text-[11px] tracking-wide uppercase">
+            <Badge variant={c.recoveredAmountPaise ? "emerald" : "amber"} dot pulse={!c.recoveredAmountPaise} className="uppercase">
               {c.recoveredAmountPaise ? "paid" : "awaiting payment"}
-            </span>
+            </Badge>
           </div>
           {link.provider === "razorpay_test" ? (
-            <p className="text-muted-foreground border-t px-4 py-2 text-[11px]">
+            <PanelNote>
               A real Razorpay link in test mode. Opening it and paying with a test card marks this
               case RECOVERED on the next cycle — no real money moves.
-            </p>
+            </PanelNote>
           ) : null}
         </Panel>
       ) : null}
@@ -153,12 +186,12 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
           <Facts
             rows={[
               ["Method", c.payment.method],
-              ["Failure code", <span className="font-mono text-xs">{c.payment.failureCode ?? "—"}</span>],
+              ["Failure code", <Code>{c.payment.failureCode ?? "—"}</Code>],
               ["Provider said", <span className="text-muted-foreground">{c.payment.failureReasonRaw ?? "—"}</span>],
-              ["Attempt", c.payment.attemptNumber],
-              ["Opened", <span className="font-mono text-xs">{stamp(c.openedAt)}</span>],
-              ["Closed", <span className="font-mono text-xs">{c.closedAt ? stamp(c.closedAt) : "—"}</span>],
-              ["Cycles", c.cycleCount],
+              ["Attempt", <Code>{c.payment.attemptNumber}</Code>],
+              ["Opened", <Code>{stamp(c.openedAt)}</Code>],
+              ["Closed", <Code>{c.closedAt ? stamp(c.closedAt) : "—"}</Code>],
+              ["Cycles", <Code>{c.cycleCount}</Code>],
             ]}
           />
         </Panel>
@@ -167,82 +200,86 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
           <Facts
             rows={[
               ["Name", c.customer.name],
-              ["Email", <span className="font-mono text-xs">{c.customer.email}</span>],
-              ["Paid before", `${c.customer.successes} time(s)`],
-              ["Failed before", `${c.customer.failures} time(s)`],
+              ["Email", <Code>{c.customer.email}</Code>],
+              ["Paid before", <Code className={c.customer.successes > 0 ? "text-emerald-300" : undefined}>{c.customer.successes} time(s)</Code>],
+              ["Failed before", <Code className={c.customer.failures > 0 ? "text-rose-300" : undefined}>{c.customer.failures} time(s)</Code>],
             ]}
           />
         </Panel>
       </div>
 
       {latest ? (
-        <Panel title="Latest assessment" meta={<SourceBadge source={latest.source} />} className="mb-4">
-          <Facts
-            rows={[
-              ["Diagnosis", <span className="font-mono text-xs">{latest.diagnosis}</span>],
-              ["Recoverability", <span className="font-mono text-xs">{latest.recoverability}</span>],
-              ["Confidence", <span className="tabular font-mono text-xs">{latest.confidence.toFixed(2)}</span>],
-              ["Proposed", <span className="font-mono text-xs">{latest.action}</span>],
-              ...(latest.model
-                ? ([["Model", <span className="font-mono text-xs">{latest.model}</span>]] as Array<[string, React.ReactNode]>)
-                : []),
-            ]}
-          />
-          <div className="border-t px-4 py-3">
-            <p className="text-sm leading-relaxed">{latest.reasoning}</p>
-            {latest.source === "heuristic_fallback" ? (
-              <p className="text-muted-foreground mt-2 text-[11px] tracking-wide uppercase">
-                Produced by the deterministic decider, not a model
-              </p>
-            ) : null}
+        <Panel title="Latest assessment" tone="sky" meta={<SourceBadge source={latest.source} />} className="mb-4">
+          <div className="grid gap-x-6 px-4 py-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(
+              [
+                ["Diagnosis", latest.diagnosis, undefined],
+                ["Recoverability", latest.recoverability, undefined],
+                [
+                  "Confidence",
+                  latest.confidence.toFixed(2),
+                  latest.confidence < 0.6 ? "text-rose-300" : latest.confidence < 0.8 ? "text-amber-300" : "text-emerald-300",
+                ],
+                ["Proposed", latest.action, undefined],
+              ] as Array<[string, string, string | undefined]>
+            ).map(([k, v, tone]) => (
+              <div key={k} className="py-1.5">
+                <p className="eyebrow">{k}</p>
+                <p className={cn("num mt-1 text-[13px] font-medium", tone)}>{v}</p>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-white/6 px-4 py-3">
+            <p className="text-[13px] leading-relaxed text-foreground/85">{latest.reasoning}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {latest.model ? (
+                <span className="text-muted-foreground font-mono text-[11px]">{latest.model}</span>
+              ) : null}
+              {latest.latencyMs !== null ? (
+                <span className="text-muted-foreground/70 num text-[11px]">{latest.latencyMs} ms</span>
+              ) : null}
+              {latest.source === "heuristic_fallback" ? (
+                <span className="eyebrow">Produced by the deterministic decider, not a model</span>
+              ) : null}
+            </div>
           </div>
         </Panel>
       ) : null}
 
       {c.policy.length > 0 ? (
         <Panel title="Policy verdicts" meta={`${c.policy.length}`} className="mb-4">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-8 text-[11px]">Cycle</TableHead>
-                  <TableHead className="h-8 text-[11px]">Proposed</TableHead>
-                  <TableHead className="h-8 text-[11px]">Effective</TableHead>
-                  <TableHead className="h-8 text-[11px]">Rule</TableHead>
-                  <TableHead className="h-8 text-[11px]">Reason</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {c.policy.map((p, i) => (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Cycle</TableHead>
+                <TableHead>Proposed</TableHead>
+                <TableHead>Effective</TableHead>
+                <TableHead>Rule</TableHead>
+                <TableHead>Reason</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {c.policy.map((p, i) => {
+                const overridden = p.effectiveAction !== null && p.effectiveAction !== p.originalAction;
+                return (
                   <TableRow key={i}>
-                    <TableCell className="tabular py-1.5 text-sm">{p.cycle}</TableCell>
-                    <TableCell className="py-1.5 font-mono text-[11px]">{p.originalAction}</TableCell>
-                    <TableCell
-                      className={cn(
-                        "py-1.5 font-mono text-[11px]",
-                        p.effectiveAction && p.effectiveAction !== p.originalAction && "font-semibold underline underline-offset-2",
-                      )}
-                    >
+                    <TableCell className="num text-muted-foreground">{p.cycle}</TableCell>
+                    <TableCell className="font-mono text-[11.5px]">{p.originalAction}</TableCell>
+                    <TableCell className={cn("font-mono text-[11.5px]", overridden && "font-semibold text-amber-300")}>
                       {p.effectiveAction ?? "—"}
+                      {overridden ? <span className="text-amber-300/60 ml-1.5 text-[10px] uppercase tracking-wide">overridden</span> : null}
                     </TableCell>
-                    <TableCell className="py-1.5">
-                      <span
-                        className={cn(
-                          "inline-flex rounded-sm border px-1.5 py-px font-mono text-[10px]",
-                          p.approved ? "border-border" : "border-foreground/50 border-dashed",
-                        )}
-                      >
-                        {p.ruleCode}
-                      </span>
+                    <TableCell>
+                      <RuleTag code={p.ruleCode} approved={p.approved} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground w-full max-w-0 py-1.5 text-xs whitespace-normal">
+                    <TableCell className="text-muted-foreground w-full max-w-0 text-xs leading-relaxed whitespace-normal">
                       {p.reason}
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                );
+              })}
+            </TableBody>
+          </Table>
         </Panel>
       ) : null}
 
@@ -254,13 +291,13 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
         >
           <div className="space-y-3 px-4 py-3">
             {c.messages.map((msg, i) => (
-              <div key={i} className="rounded-md border px-3 py-2">
+              <div key={i} className="rounded-md border border-white/6 bg-white/2 px-3.5 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]">
                 <div className="flex items-baseline justify-between gap-4">
-                  <strong className="text-sm">{msg.subject}</strong>
-                  <span className="text-muted-foreground font-mono text-[11px]">{stamp(msg.sentAt)}</span>
+                  <strong className="text-[13px] font-semibold">{msg.subject}</strong>
+                  <span className="text-muted-foreground num text-[11px]">{stamp(msg.sentAt)}</span>
                 </div>
-                <div className="text-muted-foreground font-mono text-[11px]">to {msg.recipient}</div>
-                <pre className="text-muted-foreground mt-2 font-mono text-[11px] whitespace-pre-wrap">{msg.body}</pre>
+                <div className="text-muted-foreground mt-0.5 font-mono text-[11px]">to {msg.recipient}</div>
+                <pre className="text-muted-foreground mt-2.5 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">{msg.body}</pre>
               </div>
             ))}
           </div>
@@ -268,23 +305,30 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
       ) : null}
 
       <Panel title="Audit timeline" meta={`${c.timeline.length} entries · append-only`}>
-        <ol className="space-y-0 px-4 py-3">
-          {c.timeline.map((e, i) => (
-            <li key={i} className={cn("flex gap-3 border-l-2 py-1.5 pl-3", weight(e.event))}>
-              <span className="text-muted-foreground w-14 shrink-0 font-mono text-[11px] leading-5">
-                {e.at.replace("T", " ").slice(11, 19)}
-              </span>
-              <div className="min-w-0">
-                <span className="text-[11px] font-semibold tracking-wide uppercase">
-                  {e.event.replace(/_/g, " ")}
+        <ol className="px-4 py-3">
+          {c.timeline.map((e, i) => {
+            const r = rail(e.event);
+            return (
+              <li key={i} className={cn("relative flex gap-4 border-l py-2 pl-5", r.line)}>
+                <span
+                  aria-hidden
+                  className={cn("absolute top-[15px] -left-[3.5px] size-1.5 rounded-full", r.dot)}
+                />
+                <span className="text-muted-foreground num w-16 shrink-0 text-[11px] leading-5">
+                  {e.at.replace("T", " ").slice(11, 19)}
                 </span>
-                {summarise(e.event, e.detail).map((line, j) => (
-                  <span key={j} className="text-muted-foreground block font-mono text-[11px]">{line}</span>
-                ))}
-                <span className="text-muted-foreground/70 block text-[10px]">{e.actor}</span>
-              </div>
-            </li>
-          ))}
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold tracking-wider uppercase text-foreground/90">
+                    {e.event.replace(/_/g, " ")}
+                  </span>
+                  {summarise(e.event, e.detail).map((line, j) => (
+                    <span key={j} className="text-muted-foreground block font-mono text-[11px] leading-5">{line}</span>
+                  ))}
+                  <span className="text-muted-foreground/50 block text-[10px]">{e.actor}</span>
+                </div>
+              </li>
+            );
+          })}
         </ol>
       </Panel>
     </div>

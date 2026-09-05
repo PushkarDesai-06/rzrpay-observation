@@ -2,80 +2,39 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Monochrome by intent. This console reports money at risk, and colour here
- * would imply a judgement the data has not earned — an amber row reads as a
- * warning even when the case is merely open. State is carried by weight, fill
- * and border instead, so the only thing that draws the eye is a number.
+ * Dark-first console.
+ *
+ * The canvas is a near-black with a faint cool tint (#0a0c10). Everything above
+ * it is built from translucent white rather than opaque greys, so surfaces
+ * stack the way glass does: a card on the canvas is 2% lighter, a hover on a
+ * card is 3% lighter again, and a border is 8% white regardless of what sits
+ * beneath it. Hue is reserved for meaning — state, decider, verdict — and is
+ * never used decoratively.
  */
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.16 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0 0);
-  --primary: oklch(0.18 0 0);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.24 0 0);
-  --muted: oklch(0.965 0 0);
-  --muted-foreground: oklch(0.53 0 0);
-  --accent: oklch(0.955 0 0);
-  --accent-foreground: oklch(0.2 0 0);
-  --destructive: oklch(0.42 0 0);
+  --background: #0a0c10;
+  --foreground: oklch(0.955 0.004 260);
+  --card: oklch(0.165 0.008 260);
+  --card-foreground: oklch(0.955 0.004 260);
+  --popover: oklch(0.185 0.01 260);
+  --popover-foreground: oklch(0.955 0.004 260);
+  --primary: oklch(0.945 0.006 260);
+  --primary-foreground: oklch(0.15 0.01 260);
+  --secondary: oklch(1 0 0 / 6%);
+  --secondary-foreground: oklch(0.92 0.006 260);
+  --muted: oklch(1 0 0 / 4%);
+  --muted-foreground: oklch(0.66 0.014 260);
+  --accent: oklch(1 0 0 / 5%);
+  --accent-foreground: oklch(0.955 0.004 260);
+  --destructive: oklch(0.68 0.19 15);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.915 0 0);
-  --input: oklch(0.915 0 0);
-  --ring: oklch(0.6 0 0);
-}
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.7 0.15 270);
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.185 0 0);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.185 0 0);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.96 0 0);
-  --primary-foreground: oklch(0.18 0 0);
-  --secondary: oklch(0.25 0 0);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.66 0 0);
-  --accent: oklch(0.27 0 0);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.75 0 0);
-  --destructive-foreground: oklch(0.18 0 0);
-  --border: oklch(0.28 0 0);
-  --input: oklch(0.32 0 0);
-  --ring: oklch(0.5 0 0);
-}
-
-/* Same palette when the OS asks for dark and no explicit class is set. */
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.185 0 0);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.185 0 0);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.96 0 0);
-  --primary-foreground: oklch(0.18 0 0);
-  --secondary: oklch(0.25 0 0);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.66 0 0);
-  --accent: oklch(0.27 0 0);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.75 0 0);
-  --destructive-foreground: oklch(0.18 0 0);
-  --border: oklch(0.28 0 0);
-  --input: oklch(0.32 0 0);
-  --ring: oklch(0.5 0 0);
-}
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -110,13 +69,54 @@
   * {
     border-color: var(--border);
   }
-  body {
+  html {
     background-color: var(--background);
+  }
+  body {
+    min-height: 100dvh;
     color: var(--foreground);
     font-feature-settings: "cv11", "ss01";
+    /* A single soft light source above the fold. Keeps the canvas from reading as a void. */
+    background-color: var(--background);
+    background-image:
+      radial-gradient(60% 40% at 50% -10%, oklch(0.45 0.09 270 / 0.22), transparent 70%),
+      radial-gradient(40% 30% at 100% 0%, oklch(0.5 0.06 200 / 0.08), transparent 70%);
+    background-repeat: no-repeat;
+  }
+  ::selection {
+    background: oklch(0.7 0.15 270 / 0.35);
   }
   /* Money and ids must align across rows to be scannable. */
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Elevated surface: faint top-light highlight plus a translucent border. */
+@utility surface {
+  position: relative;
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 3%), oklch(1 0 0 / 1%)),
+    var(--card);
+  border: 1px solid oklch(1 0 0 / 8%);
+  box-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 5%),
+    0 1px 2px 0 oklch(0 0 0 / 40%),
+    0 8px 24px -12px oklch(0 0 0 / 50%);
+}
+
+/* Numerals in tables, KPIs and timestamps. */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Small-caps section label used above values and on table heads. */
+@utility eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
 }
