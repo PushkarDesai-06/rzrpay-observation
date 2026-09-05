@@ -70,7 +70,7 @@ async function main(): Promise<void> {
 
   console.log("\n  Razorpay test mode is reachable and behaving as the provider expects.");
   console.log("  Open the url above to complete the test payment; the outcome tracker");
-  console.log("  will then confirm it on the next tick.");
+  console.log("  will sconfirm it on the next tick.");
 }
 
 main().catch((error) => {

@@ -24,7 +24,7 @@ import { PolicyRepository } from "@/db/repositories/policy-repository";
 import { AuditRepository } from "@/db/repositories/audit-repository";
 import type { PaymentProvider } from "@/providers/payment-provider";
 import type { Notifier } from "@/providers/notifier";
-import { FailureCode } from "@/core/domain/enums";
+import { FailureCode, HARD_DECLINE_CODES } from "@/core/domain/enums";
 
 export interface CycleResult {
   caseId: string;
@@ -310,14 +310,15 @@ export class RecoveryService {
           customer: this.customers.require(recoveryCase.customerId),
         });
 
-        // A failed external call is not the end of the case: re-plan if the
-        // policy still permits an attempt, fail explicitly if it does not.
+        // A failed action is not the end of the case: re-plan while any
+        // bounded intervention is still available under policy, and fail
+        // explicitly only once every avenue is spent. Judging this by the
+        // retry budget alone would close a case with an unused payment link
+        // the moment its retries ran out.
         if (execution.status === ActionStatus.FAILED) {
-          const canRetryLater =
-            this.actions.countAttempted(caseId, RecoveryAction.RETRY_PAYMENT) <
-            this.policy.maxPaymentRetries;
-
-          const next = canRetryLater ? RecoveryState.ANALYZING : RecoveryState.FAILED;
+          const next = this.hasRemainingIntervention(this.cases.requireById(caseId))
+            ? RecoveryState.ANALYZING
+            : RecoveryState.FAILED;
           const updated = this.cases.transitionState({
             caseId,
             to: next,
@@ -379,9 +380,14 @@ export class RecoveryService {
       cycles: [],
     };
 
+    // Every waiting case is polled: a payment can be confirmed at any moment,
+    // and a customer who has just paid a link should not wait hours to be
+    // credited. Only a case whose scheduled wait has elapsed is handed back
+    // for re-evaluation if nothing has landed.
     for (const pending of this.cases.list({ state: RecoveryState.WAITING_FOR_OUTCOME })) {
-      if (pending.nextEvaluationAt && pending.nextEvaluationAt.getTime() > now.getTime()) continue;
-      const observation = await this.tracker.observe(pending);
+      const due =
+        pending.nextEvaluationAt === null || pending.nextEvaluationAt.getTime() <= now.getTime();
+      const observation = await this.tracker.observe(pending, { due });
       result.observed += 1;
       if (observation.recovered) {
         result.recovered += 1;
@@ -422,6 +428,35 @@ export class RecoveryService {
       actionsInTrailingDay: this.actions.countSince(new Date(this.clock.now().getTime() - 24 * HOUR_MS)),
       failureCode: payment.failureCode ?? FailureCode.UNKNOWN,
     };
+  }
+
+  /**
+   * Whether the policy would still permit at least one real intervention.
+   *
+   * Read from the same ledger facts the policy engine enforces against, so the
+   * failure path cannot disagree with the rules about what remains possible.
+   * The agent still chooses among the remaining options on the next cycle;
+   * this only decides whether there is anything left to choose.
+   */
+  private hasRemainingIntervention(recoveryCase: RecoveryCase): boolean {
+    const facts = this.gatherFacts(recoveryCase);
+    const { policy } = this;
+
+    const retryPossible =
+      facts.retriesAttempted < policy.maxPaymentRetries &&
+      !HARD_DECLINE_CODES.includes(facts.failureCode);
+
+    const linkPossible =
+      !facts.hasOpenPaymentLink &&
+      facts.paymentLinksCreated < policy.maxPaymentLinks &&
+      facts.customerMessagesSent < policy.maxCustomerMessages;
+
+    const reminderPossible =
+      facts.paymentLinksCreated > 0 &&
+      facts.remindersSent < policy.maxReminders &&
+      facts.customerMessagesSent < policy.maxCustomerMessages;
+
+    return retryPossible || linkPossible || reminderPossible;
   }
 
   /**

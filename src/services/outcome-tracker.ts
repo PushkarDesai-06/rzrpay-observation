@@ -53,7 +53,22 @@ export class OutcomeTracker {
     this.audit = new AuditRepository(db);
   }
 
-  async observe(recoveryCase: RecoveryCase): Promise<ObservationResult> {
+  /**
+   * Check the provider for a confirmed payment.
+   *
+   * Polling is cheap and a capture can land at any moment, so every tick asks.
+   * What is *not* cheap is giving up: bouncing the case back to analysis costs a
+   * full decision cycle, and with a model behind the agent that is a real API
+   * call. So the case is only returned for re-evaluation when `due` is true —
+   * that is, when the scheduled wait for the customer has actually elapsed.
+   * Until then an unconfirmed case simply stays waiting.
+   */
+  async observe(
+    recoveryCase: RecoveryCase,
+    options: { due?: boolean } = {},
+  ): Promise<ObservationResult> {
+    const due = options.due ?? true;
+
     if (recoveryCase.state !== RecoveryState.WAITING_FOR_OUTCOME) {
       return {
         caseId: recoveryCase.id,
@@ -69,6 +84,16 @@ export class OutcomeTracker {
 
     if (confirmed) {
       return this.markRecovered(recoveryCase, confirmed.reference, confirmed.via);
+    }
+
+    if (!due) {
+      return {
+        caseId: recoveryCase.id,
+        state: recoveryCase.state,
+        recovered: false,
+        recoveredAmountPaise: null,
+        detail: "No payment confirmed yet; still within the scheduled wait",
+      };
     }
 
     // Nothing recovered yet. Either the window has closed, or we try again.
