@@ -1,0 +1,852 @@
+<title>Revenue Recovery Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    --ground:      #F4F6F7;
+    --surface:     #FFFFFF;
+    --surface-alt: #EDF1F2;
+    --ink:         #141F26;
+    --ink-soft:    #3D4C56;
+    --muted:       #63737E;
+    --rule:        #D4DDE1;
+    --rule-strong: #B4C3C9;
+    --accent:      #0B6E75;
+    --accent-ink:  #085259;
+    --accent-wash: #E0EFF0;
+    --good:        #1C6E48;
+    --good-wash:   #DFEDE5;
+    --warn:        #8F5A0B;
+    --warn-wash:   #F3E9D8;
+    --bad:         #97362B;
+    --bad-wash:    #F2E1DE;
+
+    --step: clamp(1rem, 0.6rem + 1.2vw, 1.35rem);
+    --measure: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1519;
+      --surface:     #151E24;
+      --surface-alt: #1B262D;
+      --ink:         #E4ECF0;
+      --ink-soft:    #B9C7CF;
+      --muted:       #8496A1;
+      --rule:        #26343D;
+      --rule-strong: #3A4C57;
+      --accent:      #4FC2CC;
+      --accent-ink:  #7FD8E0;
+      --accent-wash: #0F2E33;
+      --good:        #5BBE8C;
+      --good-wash:   #122C21;
+      --warn:        #D7A356;
+      --warn-wash:   #2E2415;
+      --bad:         #D98275;
+      --bad-wash:    #301A17;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0E1519;
+    --surface:     #151E24;
+    --surface-alt: #1B262D;
+    --ink:         #E4ECF0;
+    --ink-soft:    #B9C7CF;
+    --muted:       #8496A1;
+    --rule:        #26343D;
+    --rule-strong: #3A4C57;
+    --accent:      #4FC2CC;
+    --accent-ink:  #7FD8E0;
+    --accent-wash: #0F2E33;
+    --good:        #5BBE8C;
+    --good-wash:   #122C21;
+    --warn:        #D7A356;
+    --warn-wash:   #2E2415;
+    --bad:         #D98275;
+    --bad-wash:    #301A17;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: clamp(2rem, 5vw, 4.5rem) clamp(1.1rem, 4vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  h1, h2, h3, .eyebrow, .pill, th, .fig-num {
+    font-family: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 1.4rem + 3.4vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+
+  p { margin: 0; max-width: var(--measure); }
+
+  .eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+  code {
+    font-size: 0.84em;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.08em 0.34em;
+    color: var(--ink-soft);
+  }
+
+  /* ---- masthead ---- */
+  header { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .lede {
+    font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.24rem);
+    color: var(--ink-soft);
+    max-width: 60ch;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .fact {
+    flex: 1 1 128px;
+    padding: 0.85rem 1.1rem;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .fact:last-child { border-right: 0; }
+
+  .fact dt {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .fact dd {
+    margin: 0;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 1.15rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .sec-head { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  /* ---- figures ---- */
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .fig-canvas { overflow-x: auto; padding: 1.4rem clamp(0.75rem, 2vw, 1.6rem); }
+
+  figure svg { display: block; width: 100%; min-width: 600px; height: auto; color: var(--ink); }
+
+  figcaption {
+    border-top: 1px solid var(--rule);
+    background: var(--surface-alt);
+    padding: 0.8rem clamp(0.9rem, 2vw, 1.6rem);
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+
+  .fig-num {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  /* ---- svg primitives ---- */
+  .n-box   { fill: var(--surface-alt); stroke: var(--rule-strong); stroke-width: 1.25; }
+  .n-ext   { fill: none; stroke: var(--rule-strong); stroke-width: 1.25; stroke-dasharray: 5 4; }
+  .n-key   { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 2; }
+  .n-good  { fill: var(--good-wash); stroke: var(--good); stroke-width: 1.5; }
+  .n-stop  { fill: none; stroke: var(--rule-strong); stroke-width: 1.25; stroke-dasharray: 4 4; }
+
+  .t-name  { font-family: "Bricolage Grotesque", sans-serif; font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .t-sub   { font-family: "JetBrains Mono", monospace; font-size: 10.5px; fill: var(--muted); }
+  .t-edge  { font-family: "JetBrains Mono", monospace; font-size: 10.5px; fill: var(--muted); }
+  .t-key   { font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700; fill: var(--accent); }
+  .t-good  { fill: var(--good); }
+  .t-stage { font-family: "Bricolage Grotesque", sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; fill: var(--accent); }
+  .t-cap   { font-family: "Bricolage Grotesque", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.11em; fill: var(--muted); }
+
+  .e-flow  { stroke: var(--ink-soft); stroke-width: 1.4; fill: none; }
+  .e-key   { stroke: var(--accent); stroke-width: 2.4; fill: none; }
+  .e-soft  { stroke: var(--rule-strong); stroke-width: 1.2; fill: none; stroke-dasharray: 4 4; }
+  .e-back  { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 3 4; }
+  .e-deny  { stroke: var(--bad); stroke-width: 1.6; fill: none; stroke-dasharray: 6 5; }
+
+  .mk-flow { fill: var(--ink-soft); }
+  .mk-key  { fill: var(--accent); }
+  .mk-soft { fill: var(--rule-strong); }
+  .mk-back { fill: var(--muted); }
+
+  /* ---- tables ---- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.9rem; }
+
+  th {
+    text-align: left;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--rule-strong);
+    background: var(--surface-alt);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.68rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+
+  tr:last-child td { border-bottom: 0; }
+
+  td.state, td.rule { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink); white-space: nowrap; }
+
+  .pill {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 0.16rem 0.5rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .pill.terminal { background: var(--bad-wash);  color: var(--bad); }
+  .pill.holding  { background: var(--warn-wash); color: var(--warn); }
+  .pill.active   { background: var(--accent-wash); color: var(--accent-ink); }
+  .pill.done     { background: var(--good-wash); color: var(--good); }
+
+  /* ---- guarantee cards ---- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 0.9rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    padding: 1.05rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .card p { font-size: 0.89rem; color: var(--ink-soft); }
+  .card .where { font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--accent); }
+
+  /* ---- provenance strip ---- */
+  .chain { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: stretch; }
+
+  .link {
+    flex: 1 1 210px;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 7px;
+    background: var(--surface);
+    padding: 0.8rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+  }
+  .link.fallback { border-left-color: var(--warn); }
+  .link .src { font-family: "JetBrains Mono", monospace; font-size: 0.72rem; color: var(--muted); }
+  .link p { font-size: 0.85rem; }
+
+  .note {
+    border-left: 3px solid var(--rule-strong);
+    padding: 0.15rem 0 0.15rem 1rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    max-width: var(--measure);
+  }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.4rem;
+    color: var(--muted);
+    font-size: 0.84rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 120ms ease; }
+  }
+  a { color: var(--accent); }
+  a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Track 03 · AI Revenue Recovery</p>
+    <h1>Revenue Recovery Loop</h1>
+    <p class="lede">
+      A payment fails. The system detects it, diagnoses why, chooses a bounded intervention,
+      validates that intervention against deterministic policy, executes it, confirms the outcome
+      with the provider, and only then counts the money as recovered.
+    </p>
+    <dl class="facts">
+      <div class="fact"><dt>States</dt><dd>13</dd></div>
+      <div class="fact"><dt>Actions</dt><dd>6</dd></div>
+      <div class="fact"><dt>Policy rules</dt><dd>16</dd></div>
+      <div class="fact"><dt>Tables</dt><dd>10</dd></div>
+      <div class="fact"><dt>Tests</dt><dd>167</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">The closed loop</p>
+      <h2>One failed payment, end to end</h2>
+      <p>
+        Eight stages, each one recorded before the next begins. The model appears at exactly one
+        stage and produces exactly one structured decision per cycle — everything before it is
+        deterministic assembly, everything after it is deterministic enforcement.
+      </p>
+    </div>
+
+    <figure>
+      <div class="fig-canvas">
+        <svg viewBox="0 0 940 900" role="img"
+             aria-label="Vertical flow: a payment failure event enters EventService, which opens one recovery case per payment in the SQLite ledger. ContextBuilder assembles context, RecoveryAgent produces a structured decision, PolicyEngine validates it against facts read fresh from the ledger and either mints an ApprovedAction or diverts the case to blocked, escalated or stopped. ActionExecutor makes a bounded provider call, OutcomeTracker polls the provider for confirmation, and only a confirmed capture is measured as recovered revenue. An unconfirmed outcome returns the case to context assembly for re-evaluation.">
+          <defs>
+            <marker id="f1-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-flow"></path>
+            </marker>
+            <marker id="f1-key" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-key"></path>
+            </marker>
+            <marker id="f1-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-soft"></path>
+            </marker>
+            <marker id="f1-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-back"></path>
+            </marker>
+          </defs>
+
+          <!-- ledger rail -->
+          <rect x="30" y="116" width="180" height="644" rx="7" class="n-stop"></rect>
+          <text x="120" y="142" text-anchor="middle" class="t-cap">SQLITE LEDGER</text>
+          <text x="120" y="176" text-anchor="middle" class="t-sub">recovery_cases</text>
+          <text x="120" y="196" text-anchor="middle" class="t-sub">recovery_decisions</text>
+          <text x="120" y="216" text-anchor="middle" class="t-sub">policy_evaluations</text>
+          <text x="120" y="236" text-anchor="middle" class="t-sub">recovery_actions</text>
+          <text x="120" y="256" text-anchor="middle" class="t-sub">case_state_transitions</text>
+          <text x="120" y="276" text-anchor="middle" class="t-sub">audit_log</text>
+          <line x1="52" y1="300" x2="188" y2="300" class="e-soft"></line>
+          <text x="120" y="330" text-anchor="middle" class="t-sub">append-only:</text>
+          <text x="120" y="348" text-anchor="middle" class="t-sub">triggers reject</text>
+          <text x="120" y="366" text-anchor="middle" class="t-sub">UPDATE + DELETE</text>
+          <line x1="52" y1="392" x2="188" y2="392" class="e-soft"></line>
+          <text x="120" y="422" text-anchor="middle" class="t-sub">no stored</text>
+          <text x="120" y="440" text-anchor="middle" class="t-sub">aggregates —</text>
+          <text x="120" y="458" text-anchor="middle" class="t-sub">metrics are</text>
+          <text x="120" y="476" text-anchor="middle" class="t-sub">queries</text>
+
+          <!-- 1 event -->
+          <rect x="290" y="20" width="340" height="56" rx="6" class="n-ext"></rect>
+          <text x="460" y="44" text-anchor="middle" class="t-name">Payment failure event</text>
+          <text x="460" y="63" text-anchor="middle" class="t-sub">webhook or simulator</text>
+
+          <!-- 2 detect -->
+          <rect x="290" y="116" width="340" height="56" rx="6" class="n-box"></rect>
+          <text x="306" y="140" class="t-stage">DETECT</text>
+          <text x="620" y="140" text-anchor="end" class="t-name">EventService</text>
+          <text x="306" y="160" class="t-sub">deterministic — no model consulted</text>
+
+          <!-- 3 assemble -->
+          <rect x="290" y="212" width="340" height="56" rx="6" class="n-box"></rect>
+          <text x="306" y="236" class="t-stage">ASSEMBLE</text>
+          <text x="620" y="236" text-anchor="end" class="t-name">ContextBuilder</text>
+          <text x="306" y="256" class="t-sub">only what the ledger already holds</text>
+
+          <!-- 4 decide -->
+          <rect x="290" y="308" width="340" height="56" rx="6" class="n-box"></rect>
+          <text x="306" y="332" class="t-stage">DECIDE</text>
+          <text x="620" y="332" text-anchor="end" class="t-name">RecoveryAgent</text>
+          <text x="306" y="352" class="t-sub">one LLM call · no tool loop</text>
+
+          <!-- 5 validate (the gate) -->
+          <rect x="290" y="404" width="340" height="68" rx="6" class="n-key"></rect>
+          <text x="306" y="430" class="t-stage">VALIDATE</text>
+          <text x="620" y="430" text-anchor="end" class="t-name">PolicyEngine</text>
+          <text x="306" y="450" class="t-sub">16 ordered rules · pure functions</text>
+          <text x="306" y="466" class="t-sub">first rule to fire decides</text>
+
+          <!-- 6 act -->
+          <rect x="290" y="512" width="340" height="56" rx="6" class="n-box"></rect>
+          <text x="306" y="536" class="t-stage">ACT</text>
+          <text x="620" y="536" text-anchor="end" class="t-name">ActionExecutor</text>
+          <text x="306" y="556" class="t-sub">claims idempotency key before calling</text>
+
+          <!-- 7 provider -->
+          <rect x="290" y="608" width="340" height="56" rx="6" class="n-ext"></rect>
+          <text x="460" y="632" text-anchor="middle" class="t-name">PaymentProvider</text>
+          <text x="460" y="651" text-anchor="middle" class="t-sub">simulated · Razorpay test mode</text>
+
+          <!-- 8 observe -->
+          <rect x="290" y="704" width="340" height="56" rx="6" class="n-box"></rect>
+          <text x="306" y="728" class="t-stage">OBSERVE</text>
+          <text x="620" y="728" text-anchor="end" class="t-name">OutcomeTracker</text>
+          <text x="306" y="748" class="t-sub">sole writer of recovered revenue</text>
+
+          <!-- 9 measure -->
+          <rect x="290" y="800" width="340" height="56" rx="6" class="n-good"></rect>
+          <text x="460" y="824" text-anchor="middle" class="t-name t-good">Revenue recovered</text>
+          <text x="460" y="843" text-anchor="middle" class="t-sub">confirmed captures only</text>
+
+          <!-- spine arrows -->
+          <line x1="460" y1="76"  x2="460" y2="112" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="100" class="t-edge">payment.status === failed</text>
+
+          <line x1="460" y1="172" x2="460" y2="208" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="196" class="t-edge">one case per payment</text>
+
+          <line x1="460" y1="268" x2="460" y2="304" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="292" class="t-edge">RecoveryContext</text>
+
+          <line x1="460" y1="364" x2="460" y2="400" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="388" class="t-edge">structured decision · 6 actions max</text>
+
+          <line x1="460" y1="472" x2="460" y2="508" class="e-key" marker-end="url(#f1-key)"></line>
+          <text x="474" y="496" class="t-key">ApprovedAction</text>
+
+          <line x1="460" y1="568" x2="460" y2="604" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="592" class="t-edge">bounded call · retry, link or message</text>
+
+          <line x1="460" y1="664" x2="460" y2="700" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="688" class="t-edge">polled for confirmation each tick</text>
+
+          <line x1="460" y1="760" x2="460" y2="796" class="e-flow" marker-end="url(#f1-flow)"></line>
+          <text x="474" y="784" class="t-edge">only on a confirmed capture</text>
+
+          <!-- ledger edges -->
+          <line x1="290" y1="144" x2="214" y2="144" class="e-soft" marker-end="url(#f1-soft)"></line>
+          <text x="252" y="136" text-anchor="middle" class="t-edge">opens</text>
+
+          <line x1="210" y1="438" x2="286" y2="438" class="e-key" marker-end="url(#f1-key)"></line>
+          <text x="248" y="430" text-anchor="middle" class="t-key">facts</text>
+
+          <line x1="290" y1="540" x2="214" y2="540" class="e-soft" marker-end="url(#f1-soft)"></line>
+          <text x="252" y="532" text-anchor="middle" class="t-edge">writes</text>
+
+          <line x1="290" y1="732" x2="214" y2="732" class="e-soft" marker-end="url(#f1-soft)"></line>
+          <text x="252" y="724" text-anchor="middle" class="t-edge">writes</text>
+
+          <!-- policy rejection exit -->
+          <rect x="670" y="404" width="160" height="68" rx="6" class="n-stop"></rect>
+          <text x="750" y="428" text-anchor="middle" class="t-sub">BLOCKED_BY_POLICY</text>
+          <text x="750" y="446" text-anchor="middle" class="t-sub">ESCALATED</text>
+          <text x="750" y="464" text-anchor="middle" class="t-sub">STOPPED</text>
+          <line x1="630" y1="438" x2="666" y2="438" class="e-flow" marker-end="url(#f1-flow)"></line>
+
+          <!-- re-evaluation loop -->
+          <path d="M 630 732 L 880 732 L 880 240 L 634 240" class="e-back" marker-end="url(#f1-back)"></path>
+          <text x="756" y="232" text-anchor="middle" class="t-edge">no payment yet — re-evaluate</text>
+        </svg>
+      </div>
+      <figcaption>
+        <span class="fig-num">Fig 1</span>
+        <span>The model occupies one stage of eight. Policy reads its facts from the ledger, not from the context the model saw.</span>
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">The central guarantee</p>
+      <h2>The model cannot reach a payment provider</h2>
+      <p>
+        <code>ApprovedAction</code> has a private constructor. The only place it can be built is the
+        final step of <code>evaluate()</code> inside the policy engine, and the executor accepts
+        nothing else — it checks <code>instanceof</code> before touching a provider. The direct
+        path from a model decision to an external call is not discouraged; it is absent.
+      </p>
+    </div>
+
+    <figure>
+      <div class="fig-canvas">
+        <svg viewBox="0 0 900 340" role="img"
+             aria-label="RecoveryAgent emits a recommended action to PolicyEngine. PolicyEngine also reads enforcement facts from the ledger, independently of the agent. Only PolicyEngine can mint an ApprovedAction, which ActionExecutor requires. A direct path from RecoveryAgent to ActionExecutor is drawn crossed out and labelled: no such path exists.">
+          <defs>
+            <marker id="f2-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-flow"></path>
+            </marker>
+            <marker id="f2-key" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-key"></path>
+            </marker>
+            <marker id="f2-soft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-soft"></path>
+            </marker>
+          </defs>
+
+          <!-- forbidden arc -->
+          <path d="M 130 130 C 250 30, 650 30, 770 130" class="e-deny"></path>
+          <line x1="432" y1="42" x2="468" y2="78" stroke="var(--bad)" stroke-width="2.4"></line>
+          <line x1="468" y1="42" x2="432" y2="78" stroke="var(--bad)" stroke-width="2.4"></line>
+          <text x="450" y="28" text-anchor="middle" class="t-edge" fill="var(--bad)">no such path exists</text>
+
+          <!-- agent -->
+          <rect x="30" y="130" width="200" height="66" rx="6" class="n-box"></rect>
+          <text x="130" y="158" text-anchor="middle" class="t-name">RecoveryAgent</text>
+          <text x="130" y="177" text-anchor="middle" class="t-sub">LLM or heuristic</text>
+
+          <!-- ledger -->
+          <rect x="30" y="248" width="200" height="62" rx="6" class="n-stop"></rect>
+          <text x="130" y="274" text-anchor="middle" class="t-sub">ledger counters</text>
+          <text x="130" y="293" text-anchor="middle" class="t-sub">retries · messages · timing</text>
+
+          <!-- policy -->
+          <rect x="340" y="120" width="220" height="86" rx="6" class="n-key"></rect>
+          <text x="450" y="150" text-anchor="middle" class="t-name">PolicyEngine</text>
+          <text x="450" y="170" text-anchor="middle" class="t-sub">deterministic · pure</text>
+          <text x="450" y="188" text-anchor="middle" class="t-sub">the only mint site</text>
+
+          <!-- executor -->
+          <rect x="670" y="130" width="200" height="66" rx="6" class="n-box"></rect>
+          <text x="770" y="158" text-anchor="middle" class="t-name">ActionExecutor</text>
+          <text x="770" y="177" text-anchor="middle" class="t-sub">instanceof checked</text>
+
+          <!-- edges -->
+          <line x1="230" y1="163" x2="336" y2="163" class="e-flow" marker-end="url(#f2-flow)"></line>
+          <text x="283" y="152" text-anchor="middle" class="t-edge">proposes</text>
+
+          <line x1="230" y1="279" x2="410" y2="279" class="e-soft"></line>
+          <line x1="410" y1="279" x2="410" y2="210" class="e-soft" marker-end="url(#f2-soft)"></line>
+          <text x="318" y="270" text-anchor="middle" class="t-edge">read fresh</text>
+
+          <line x1="560" y1="163" x2="666" y2="163" class="e-key" marker-end="url(#f2-key)"></line>
+          <text x="613" y="152" text-anchor="middle" class="t-key">ApprovedAction</text>
+
+          <text x="613" y="182" text-anchor="middle" class="t-sub">frozen · case-scoped</text>
+        </svg>
+      </div>
+      <figcaption>
+        <span class="fig-num">Fig 2</span>
+        <span>A forged lookalike fails the <code>instanceof</code> check before any provider is contacted — verified by test, with zero action rows written.</span>
+      </figcaption>
+    </figure>
+
+    <p class="note">
+      The second edge matters as much as the missing one. The context handed to the model includes an
+      advisory budget summary so it proposes something plausible — but the policy engine re-derives
+      every counter from the database. A model that misreads that summary, or is told to ignore it,
+      changes nothing about what executes.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">Case lifecycle</p>
+      <h2>Thirteen states, one way to reach recovered</h2>
+      <p>
+        Transitions come from a hard-coded table. <code>transitionState()</code> is the only writer of
+        case state and runs every move past that table first, so an illegal transition throws rather
+        than corrupting the record.
+      </p>
+    </div>
+
+    <figure>
+      <div class="fig-canvas">
+        <svg viewBox="0 0 900 560" role="img"
+             aria-label="State machine. The main path runs DETECTED, ANALYZING, RECOVERY_CANDIDATE, ACTION_PLANNED, POLICY_VALIDATED, ACTION_EXECUTING, WAITING_FOR_OUTCOME, then RECOVERED. Two dashed back edges return ACTION_EXECUTING and WAITING_FOR_OUTCOME to ANALYZING. BLOCKED_BY_POLICY is a holding state with two exits. Four terminal states — NOT_RECOVERABLE, ESCALATED, STOPPED and FAILED — have no outgoing transitions.">
+          <defs>
+            <marker id="f3-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-flow"></path>
+            </marker>
+            <marker id="f3-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" class="mk-back"></path>
+            </marker>
+          </defs>
+
+          <rect x="150" y="20"  width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="44" text-anchor="middle" class="t-sub">DETECTED</text>
+
+          <rect x="150" y="88"  width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="112" text-anchor="middle" class="t-sub">ANALYZING</text>
+
+          <rect x="150" y="156" width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="180" text-anchor="middle" class="t-sub">RECOVERY_CANDIDATE</text>
+
+          <rect x="150" y="224" width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="248" text-anchor="middle" class="t-sub">ACTION_PLANNED</text>
+
+          <rect x="150" y="292" width="230" height="38" rx="19" class="n-key"></rect>
+          <text x="265" y="316" text-anchor="middle" class="t-sub">POLICY_VALIDATED</text>
+
+          <rect x="150" y="360" width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="384" text-anchor="middle" class="t-sub">ACTION_EXECUTING</text>
+
+          <rect x="150" y="428" width="230" height="38" rx="19" class="n-box"></rect>
+          <text x="265" y="452" text-anchor="middle" class="t-sub">WAITING_FOR_OUTCOME</text>
+
+          <rect x="150" y="500" width="230" height="40" rx="20" class="n-good"></rect>
+          <text x="265" y="525" text-anchor="middle" class="t-sub t-good">RECOVERED</text>
+
+          <line x1="265" y1="58"  x2="265" y2="84"  class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="126" x2="265" y2="152" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="194" x2="265" y2="220" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="262" x2="265" y2="288" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="330" x2="265" y2="356" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="398" x2="265" y2="424" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <line x1="265" y1="466" x2="265" y2="496" class="e-flow" marker-end="url(#f3-flow)"></line>
+          <text x="279" y="488" class="t-edge">confirmed capture</text>
+
+          <!-- back edges -->
+          <path d="M 150 379 L 66 379 L 66 100 L 146 100" class="e-back" marker-end="url(#f3-back)"></path>
+          <path d="M 150 447 L 30 447 L 30 114 L 146 114" class="e-back" marker-end="url(#f3-back)"></path>
+          <text x="96" y="242" text-anchor="middle" class="t-edge" transform="rotate(-90 96 242)">action failed · outcome pending</text>
+
+          <!-- holding -->
+          <rect x="560" y="212" width="300" height="62" rx="6" class="n-box" stroke="var(--warn)"></rect>
+          <text x="710" y="238" text-anchor="middle" class="t-sub" fill="var(--warn)">BLOCKED_BY_POLICY</text>
+          <text x="710" y="258" text-anchor="middle" class="t-sub">holding — waits, or stops</text>
+          <line x1="380" y1="243" x2="556" y2="243" class="e-flow" marker-end="url(#f3-flow)"></line>
+
+          <!-- terminal cluster -->
+          <rect x="560" y="308" width="300" height="176" rx="7" class="n-stop"></rect>
+          <text x="710" y="334" text-anchor="middle" class="t-cap">TERMINAL — NO EXITS</text>
+          <text x="710" y="366" text-anchor="middle" class="t-sub">NOT_RECOVERABLE</text>
+          <text x="710" y="392" text-anchor="middle" class="t-sub">ESCALATED</text>
+          <text x="710" y="418" text-anchor="middle" class="t-sub">STOPPED</text>
+          <text x="710" y="444" text-anchor="middle" class="t-sub">FAILED</text>
+          <text x="710" y="470" text-anchor="middle" class="t-sub">RECOVERED</text>
+          <line x1="380" y1="396" x2="556" y2="396" class="e-flow" marker-end="url(#f3-flow)"></line>
+        </svg>
+      </div>
+      <figcaption>
+        <span class="fig-num">Fig 3</span>
+        <span>Terminal states have no outgoing edges at all — which is what makes a recovered case impossible to reopen or double-count.</span>
+      </figcaption>
+    </figure>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>From</th><th>May become</th><th>Kind</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="state">DETECTED</td><td class="state">ANALYZING</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">ANALYZING</td><td class="state">RECOVERY_CANDIDATE · NOT_RECOVERABLE · ESCALATED · FAILED</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">RECOVERY_CANDIDATE</td><td class="state">ACTION_PLANNED</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">ACTION_PLANNED</td><td class="state">POLICY_VALIDATED · BLOCKED_BY_POLICY · ESCALATED · STOPPED</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">POLICY_VALIDATED</td><td class="state">ACTION_EXECUTING</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">ACTION_EXECUTING</td><td class="state">WAITING_FOR_OUTCOME · ANALYZING · FAILED</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">WAITING_FOR_OUTCOME</td><td class="state">RECOVERED · ANALYZING · STOPPED · FAILED · ESCALATED</td><td><span class="pill active">Active</span></td></tr>
+          <tr><td class="state">BLOCKED_BY_POLICY</td><td class="state">ANALYZING · STOPPED</td><td><span class="pill holding">Holding</span></td></tr>
+          <tr><td class="state">RECOVERED</td><td class="state">—</td><td><span class="pill done">Terminal</span></td></tr>
+          <tr><td class="state">FAILED · NOT_RECOVERABLE · ESCALATED · STOPPED</td><td class="state">—</td><td><span class="pill terminal">Terminal</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      <code>ACTION_EXECUTING → ANALYZING</code> exists because a failed provider call is new evidence.
+      Re-running a stale plan would ignore what just happened; the agent reconsiders instead.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">Where the guarantees live</p>
+      <h2>Enforced by construction, not by convention</h2>
+      <p>
+        Each of these is the kind of rule a comment can state and code can quietly violate. They are
+        placed where violating them is impossible rather than merely discouraged.
+      </p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>One case per payment</h3>
+        <p>Five redeliveries of the same failure open one case and report the amount at risk once. Duplicates are logged, not silently dropped.</p>
+        <span class="where">UNIQUE(payment_id)</span>
+      </div>
+      <div class="card">
+        <h3>No card charged twice</h3>
+        <p>The executor claims the action's idempotency key in the database before the external call, so a crash mid-call leaves evidence and a re-run calls nothing.</p>
+        <span class="where">UNIQUE(idempotency_key)</span>
+      </div>
+      <div class="card">
+        <h3>Revenue cannot be fabricated</h3>
+        <p>A row must be <code>RECOVERED</code> to carry an amount, and must carry an amount to be <code>RECOVERED</code>. Written in one place, after the provider confirms.</p>
+        <span class="where">CHECK · OutcomeTracker</span>
+      </div>
+      <div class="card">
+        <h3>History is immutable</h3>
+        <p>The database aborts any UPDATE or DELETE against the audit log, the transition log, and recorded decisions.</p>
+        <span class="where">SQLite triggers</span>
+      </div>
+      <div class="card">
+        <h3>No invented actions</h3>
+        <p>The decision schema is generated from the same constant the executor switches on, so the two cannot drift. Anything else is a validation failure.</p>
+        <span class="where">z.enum(RecoveryAction)</span>
+      </div>
+      <div class="card">
+        <h3>No unbounded pursuit</h3>
+        <p>Three retries, two reminders, one payment link, 24 hours between messages, a 72-hour window, then the case stops.</p>
+        <span class="where">RecoveryPolicy</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">Decision provenance</p>
+      <h2>A rule is never reported as reasoning</h2>
+      <p>
+        Every decision records which decider produced it. The chain degrades so a provider outage
+        costs judgement quality, not the recovery loop — and the record always says which one you got.
+      </p>
+    </div>
+
+    <div class="chain">
+      <div class="link">
+        <span class="src">decision_source = llm</span>
+        <h3>Model answers</h3>
+        <p>One schema-constrained call. Anthropic Messages API, or any OpenAI-compatible endpoint.</p>
+      </div>
+      <div class="link">
+        <span class="src">decision_source = llm</span>
+        <h3>One repair attempt</h3>
+        <p>Invalid output earns a retry naming the exact schema violations.</p>
+      </div>
+      <div class="link fallback">
+        <span class="src">decision_source = heuristic_fallback</span>
+        <h3>Rules take over</h3>
+        <p>Deterministic decision, labelled as such in the audit trail and the interface.</p>
+      </div>
+    </div>
+
+    <p class="note">
+      The same deterministic decider is the rule-based arm of the baseline comparison — which is the
+      honest way to ask whether the model is earning its place.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <p class="eyebrow">Boundaries</p>
+      <h2>What is real, and what is modelled</h2>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Runs against</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rule">CREATE_PAYMENT_LINK</td>
+            <td>Razorpay test mode</td>
+            <td>The Payment Links API works in test mode. No real money moves.</td>
+          </tr>
+          <tr>
+            <td class="rule">getPaymentStatus</td>
+            <td>Razorpay test mode</td>
+            <td>Polled each tick, so no public webhook URL is required.</td>
+          </tr>
+          <tr>
+            <td class="rule">RETRY_PAYMENT</td>
+            <td>Simulated provider</td>
+            <td>Razorpay has no server-initiated re-charge without a saved token or active mandate. Faking one would misrepresent the demo.</td>
+          </tr>
+          <tr>
+            <td class="rule">SEND_REMINDER</td>
+            <td>Outbox</td>
+            <td>Messages are stored and displayed, never delivered. Limits are enforced identically either way.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note">
+      Every action row records which provider carried it out, and the interface shows it. Simulated
+      outcomes are seeded and reproducible: the agent and the baseline face the same draws, so the
+      comparison measures the decision rather than the luck.
+    </p>
+  </section>
+
+  <footer>
+    <p>AI Revenue Recovery Agent · Track 03 · TypeScript, SQLite, Next.js</p>
+    <p>Recovery outcomes shown in the demo dataset are synthetic and labelled as such. Test-mode payment activity does not affect real merchant transactions.</p>
+  </footer>
+
+</div>

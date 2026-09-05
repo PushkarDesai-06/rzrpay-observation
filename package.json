@@ -1,0 +1,53 @@
+{
+  "name": "revenue-recovery-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "migrate": "tsx src/scripts/migrate.ts",
+    "db:reset": "rm -f data/recovery.db && npm run migrate",
+    "demo": "tsx src/scripts/demo.ts",
+    "seed": "tsx src/scripts/seed.ts",
+    "evaluate": "tsx src/scripts/evaluate.ts",
+    "razorpay:check": "tsx src/scripts/razorpay-check.ts",
+    "metrics": "tsx src/scripts/metrics.ts",
+    "schema:generate": "tsx src/scripts/generate-schema.ts",
+    "predev": "npm run schema:generate",
+    "prebuild": "npm run schema:generate",
+    "case": "tsx src/scripts/run-case.ts"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.41.0",
+    "next": "^16.3.3",
+    "radix-ui": "^1.6.7",
+    "razorpay": "^2.9.8",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
