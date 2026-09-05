@@ -3,7 +3,15 @@ import { getMetrics, listCases, listEscalations } from "./_data";
 import { getRuntime } from "./_runtime";
 import { Controls } from "./_controls";
 import {
-  Chip, Kpi, Money, Mono, Panel, PanelNote, RuleTag, SourceBadge, StatePill,
+  Chip,
+  Kpi,
+  Money,
+  Mono,
+  Panel,
+  PanelNote,
+  RuleTag,
+  SourceBadge,
+  StatePill,
 } from "./_ui";
 import { formatINR } from "@/core/domain/money";
 import { formatRate, METRIC_DEFINITIONS } from "@/core/metrics/metrics";
@@ -46,19 +54,17 @@ export default function Dashboard() {
 
   const hours = (v: number | null) => (v === null ? "—" : `${v.toFixed(1)}h`);
   const escalatedPaise = escalations.reduce((sum, e) => sum + e.amountPaise, 0);
-  const bookPaise = m.revenue.atRiskPaise + m.revenue.recoveredPaise + m.revenue.unrecoveredPaise;
+  const bookPaise =
+    m.revenue.atRiskPaise +
+    m.revenue.recoveredPaise +
+    m.revenue.unrecoveredPaise;
   const spark = recoveredSeries(cases);
 
   return (
     <div className="mx-auto max-w-[1240px] px-6 py-7">
-      <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
+      <header className="mb-7 flex flex-col flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[20px] font-semibold tracking-tight">Overview</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <Chip k="decider" v={decider} />
-            <Chip k="provider" v={provider} />
-            <Chip k="cases" v={String(m.cases.total)} />
-          </div>
         </div>
         <Controls />
       </header>
@@ -68,7 +74,8 @@ export default function Dashboard() {
           <div className="text-muted-foreground px-4 py-14 text-center text-sm">
             <p className="text-foreground/80">Nothing has failed yet.</p>
             <p className="mt-1.5">
-              Simulate a failure above, or run <Mono>npm run seed</Mono> for a full book.
+              Simulate a failure above, or run <Mono>npm run seed</Mono> for a
+              full book.
             </p>
           </div>
         </Panel>
@@ -103,7 +110,10 @@ export default function Dashboard() {
               note={`median ${hours(m.timing.medianHoursToRecovery)}`}
               trend={
                 m.timing.fastestHours !== null
-                  ? { label: `fastest ${hours(m.timing.fastestHours)}`, variant: "sky" }
+                  ? {
+                      label: `fastest ${hours(m.timing.fastestHours)}`,
+                      variant: "sky",
+                    }
                   : undefined
               }
             />
@@ -114,7 +124,10 @@ export default function Dashboard() {
               note={formatINR(escalatedPaise)}
               trend={
                 m.cases.escalated > 0
-                  ? { label: formatRate(m.rates.escalationRate), variant: "rose" }
+                  ? {
+                      label: formatRate(m.rates.escalationRate),
+                      variant: "rose",
+                    }
                   : undefined
               }
             />
@@ -125,7 +138,10 @@ export default function Dashboard() {
               note={`${m.policy.overridden} overridden · ${m.policy.evaluations} evaluated`}
               trend={
                 m.policy.evaluations > 0
-                  ? { label: formatRate(m.rates.policyBlockRate), variant: "slate" }
+                  ? {
+                      label: formatRate(m.rates.policyBlockRate),
+                      variant: "slate",
+                    }
                   : undefined
               }
             />
@@ -134,12 +150,16 @@ export default function Dashboard() {
           {escalations.length > 0 ? (
             <Panel
               title="Waiting on a human"
-              tone="rose"
               meta={
                 <>
-                  <span>{escalations.length} {escalations.length <= 1 ? "case" : "cases"}</span>
+                  <span>
+                    {escalations.length}{" "}
+                    {escalations.length <= 1 ? "case" : "cases"}
+                  </span>
                   <span className="text-muted-foreground/40">·</span>
-                  <span className="text-foreground/80">{formatINR(escalatedPaise)}</span>
+                  <span className="text-foreground/80">
+                    {formatINR(escalatedPaise)}
+                  </span>
                 </>
               }
               className="mb-6"
@@ -179,16 +199,11 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
-              <PanelNote>
-                <span className="text-foreground/90 font-medium">Read-only.</span>{" "}
-                ESCALATED is a terminal state, so there is no legal transition back into the loop —
-                resolving these from here needs a state-machine change, not just a button.
-              </PanelNote>
             </Panel>
           ) : null}
 
           <div className="mb-6 grid gap-4 lg:grid-cols-5">
-            <Panel title="Interventions" meta="proposed → run → succeeded" className="lg:col-span-3">
+            <Panel title="Interventions" className="lg:col-span-3">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -203,31 +218,50 @@ export default function Dashboard() {
                   {m.actions
                     .filter((a) => a.proposed > 0 || a.attempted > 0)
                     .map((a) => {
-                      const rate = a.attempted > 0 ? a.succeeded / a.attempted : null;
+                      const rate =
+                        a.attempted > 0 ? a.succeeded / a.attempted : null;
                       return (
                         <TableRow key={a.action}>
                           <TableCell>
-                            <span className="text-foreground/90">{ACTION_LABEL[a.action] ?? a.action}</span>
-                            <span className="text-muted-foreground/60 ml-2 font-mono text-[10.5px]">{a.action}</span>
+                            <span className="text-foreground/90">
+                              {ACTION_LABEL[a.action] ?? a.action}
+                            </span>
+                            <span className="text-muted-foreground/60 ml-2 font-mono text-[10.5px]">
+                              {a.action}
+                            </span>
                           </TableCell>
-                          <TableCell className="num text-right text-muted-foreground">{a.proposed}</TableCell>
-                          <TableCell className="num text-right">{a.attempted}</TableCell>
-                          <TableCell className="num text-right font-medium">{a.succeeded}</TableCell>
+                          <TableCell className="num text-right text-muted-foreground">
+                            {a.proposed}
+                          </TableCell>
+                          <TableCell className="num text-right">
+                            {a.attempted}
+                          </TableCell>
+                          <TableCell className="num text-right font-medium">
+                            {a.succeeded}
+                          </TableCell>
                           <TableCell>
                             {rate === null ? (
-                              <span className="text-muted-foreground/50 num text-[11px]">—</span>
+                              <span className="text-muted-foreground/50 num text-[11px]">
+                                —
+                              </span>
                             ) : (
                               <div className="flex items-center gap-2">
                                 <div className="h-1 w-16 overflow-hidden rounded-full bg-white/6">
                                   <div
                                     className={cn(
                                       "h-full rounded-full",
-                                      rate >= 0.99 ? "bg-emerald-400" : rate >= 0.5 ? "bg-amber-400" : "bg-rose-400",
+                                      rate >= 0.99
+                                        ? "bg-emerald-400"
+                                        : rate >= 0.5
+                                          ? "bg-amber-400"
+                                          : "bg-rose-400",
                                     )}
                                     style={{ width: `${rate * 100}%` }}
                                   />
                                 </div>
-                                <span className="num text-muted-foreground text-[11px]">{formatRate(rate)}</span>
+                                <span className="num text-muted-foreground text-[11px]">
+                                  {formatRate(rate)}
+                                </span>
                               </div>
                             )}
                           </TableCell>
@@ -238,7 +272,7 @@ export default function Dashboard() {
               </Table>
             </Panel>
 
-            <Panel title="Why actions were blocked" meta="policy rule" className="lg:col-span-2">
+            <Panel title="Why actions were blocked" className="lg:col-span-2">
               {m.policy.blocksByRule.length === 0 ? (
                 <p className="text-muted-foreground px-4 py-10 text-center text-sm">
                   No actions were blocked.
@@ -257,7 +291,9 @@ export default function Dashboard() {
                         <TableCell>
                           <RuleTag code={b.ruleCode} approved={false} />
                         </TableCell>
-                        <TableCell className="num text-right font-medium">{b.count}</TableCell>
+                        <TableCell className="num text-right font-medium">
+                          {b.count}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -313,7 +349,11 @@ export default function Dashboard() {
                         ) : (
                           <span
                             className={cn(
-                              c.confidence < 0.6 ? "text-rose-300" : c.confidence < 0.8 ? "text-amber-300" : "text-foreground",
+                              c.confidence < 0.6
+                                ? "text-rose-300"
+                                : c.confidence < 0.8
+                                  ? "text-amber-300"
+                                  : "text-foreground",
                             )}
                           >
                             {c.confidence.toFixed(2)}
@@ -328,9 +368,14 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {c.recoveredAmountPaise ? (
-                          <Money paise={c.recoveredAmountPaise} className="text-emerald-300" />
+                          <Money
+                            paise={c.recoveredAmountPaise}
+                            className="text-emerald-300"
+                          />
                         ) : (
-                          <span className="text-muted-foreground/50 num">—</span>
+                          <span className="text-muted-foreground/50 num">
+                            —
+                          </span>
                         )}
                       </TableCell>
                     </TableRow>

@@ -5,8 +5,7 @@ import { Slot } from "radix-ui"
 
 /*
  * Semantic tones share one recipe: a soft tinted fill, an inset ring of the
- * same hue, and an optional glowing dot. The hue is exposed as `--dot` so the
- * indicator picks up the variant without a second class list.
+ * same hue, and text in a lighter step of that hue. Colour alone carries state.
  */
 const badgeVariants = cva(
   "inline-flex w-fit shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-md border border-transparent px-1.5 py-px text-[10.5px] font-medium tracking-wide whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [&>svg]:pointer-events-none [&>svg]:size-3",
@@ -22,16 +21,12 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
-        emerald:
-          "[--dot:var(--color-emerald-400)] bg-emerald-500/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/20",
-        amber:
-          "[--dot:var(--color-amber-400)] bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-400/20",
-        rose: "[--dot:var(--color-rose-400)] bg-rose-500/10 text-rose-300 ring-1 ring-inset ring-rose-400/20",
-        sky: "[--dot:var(--color-sky-400)] bg-sky-500/10 text-sky-300 ring-1 ring-inset ring-sky-400/20",
-        violet:
-          "[--dot:var(--color-violet-400)] bg-violet-500/10 text-violet-300 ring-1 ring-inset ring-violet-400/20",
-        slate:
-          "[--dot:var(--color-slate-400)] bg-white/4 text-slate-400 ring-1 ring-inset ring-white/8",
+        emerald: "bg-emerald-500/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/20",
+        amber: "bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-400/20",
+        rose: "bg-rose-500/10 text-rose-300 ring-1 ring-inset ring-rose-400/20",
+        sky: "bg-sky-500/10 text-sky-300 ring-1 ring-inset ring-sky-400/20",
+        violet: "bg-violet-500/10 text-violet-300 ring-1 ring-inset ring-violet-400/20",
+        slate: "bg-white/4 text-slate-400 ring-1 ring-inset ring-white/8",
       },
     },
     defaultVariants: {
@@ -46,17 +41,11 @@ function Badge({
   className,
   variant = "default",
   asChild = false,
-  dot = false,
-  pulse = false,
   children,
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & {
     asChild?: boolean
-    /** Leading glowing indicator in the variant's hue. */
-    dot?: boolean | undefined
-    /** Animate the dot; use for states the loop is still working on. */
-    pulse?: boolean | undefined
   }) {
   const Comp = asChild ? Slot.Root : "span"
 
@@ -67,15 +56,6 @@ function Badge({
       className={cn(badgeVariants({ variant }), className)}
       {...props}
     >
-      {dot ? (
-        <span
-          aria-hidden
-          className={cn(
-            "size-1.5 shrink-0 rounded-full bg-(--dot) shadow-[0_0_6px_1px_var(--dot)]",
-            pulse && "animate-pulse"
-          )}
-        />
-      ) : null}
       {children}
     </Comp>
   )

@@ -19,7 +19,12 @@ import { PolicyRepository } from "@/db/repositories/policy-repository";
 import { ActionRepository } from "@/db/repositories/action-repository";
 import { AuditRepository } from "@/db/repositories/audit-repository";
 import { OutboxRepository } from "@/db/repositories/outbox-repository";
-import { FailureCode, PaymentMethod, ProviderKind, RecoveryState } from "@/core/domain/enums";
+import {
+  FailureCode,
+  PaymentMethod,
+  ProviderKind,
+  RecoveryState,
+} from "@/core/domain/enums";
 import { formatINR } from "@/core/domain/money";
 import { normaliseFailureReason } from "@/core/domain/failure-codes";
 
@@ -40,7 +45,14 @@ const notifier = new OutboxNotifier(db, clock);
 const { agent, description: deciderDescription } = selectAgent(config);
 
 const events = new EventService(db, clock);
-const recovery = new RecoveryService(db, agent, provider, notifier, clock, config.policy);
+const recovery = new RecoveryService(
+  db,
+  agent,
+  provider,
+  notifier,
+  clock,
+  config.policy,
+);
 const cases = new CaseRepository(db);
 const decisions = new DecisionRepository(db);
 const policies = new PolicyRepository(db);
@@ -63,15 +75,24 @@ async function main(): Promise<void> {
   const ingest = events.ingestPaymentFailed({
     provider: ProviderKind.SIMULATED,
     paymentId: "pay_demo_001",
-    customer: { id: "cust_demo_001", name: "Asha Menon", email: "asha@example.com" },
+    customer: {
+      id: "cust_demo_001",
+      name: "Asha Menon",
+      email: "asha@example.com",
+    },
     amountPaise: 249900,
     method: PaymentMethod.CARD,
     failureReasonRaw: reason,
   });
-  provider.registerFailedPayment("pay_demo_001", normaliseFailureReason(reason));
+  provider.registerFailedPayment(
+    "pay_demo_001",
+    normaliseFailureReason(reason),
+  );
 
   console.log(`  Payment      pay_demo_001  ${formatINR(249900)}  CARD`);
-  console.log(`  Reason       "${reason}"  ->  ${normaliseFailureReason(reason)}`);
+  console.log(
+    `  Reason       "${reason}"  ->  ${normaliseFailureReason(reason)}`,
+  );
   console.log(`  Case         ${ingest.case.id}  state=${ingest.case.state}`);
   console.log(`  Revenue at risk: ${formatINR(events.revenueAtRiskPaise())}`);
 
@@ -79,12 +100,18 @@ async function main(): Promise<void> {
   const duplicate = events.ingestPaymentFailed({
     provider: ProviderKind.SIMULATED,
     paymentId: "pay_demo_001",
-    customer: { id: "cust_demo_001", name: "Asha Menon", email: "asha@example.com" },
+    customer: {
+      id: "cust_demo_001",
+      name: "Asha Menon",
+      email: "asha@example.com",
+    },
     amountPaise: 249900,
     method: PaymentMethod.CARD,
     failureReasonRaw: reason,
   });
-  console.log(`  Duplicate event -> accepted=${duplicate.accepted}, cases in system=${cases.list().length}`);
+  console.log(
+    `  Duplicate event -> accepted=${duplicate.accepted}, cases in system=${cases.list().length}`,
+  );
 
   const caseId = ingest.case.id;
 
@@ -102,22 +129,31 @@ async function main(): Promise<void> {
     for (const cycle of tick.cycles) {
       const decision = decisions.latestForCase(cycle.caseId);
       console.log(`\n  ── cycle ${cycle.cycle} @ ${clock.now().toISOString()}`);
-      console.log(`     diagnosis      ${decision?.diagnosis}  (${decision?.recoverability}, confidence ${decision?.confidence.toFixed(2)})`);
+      console.log(
+        `     diagnosis      ${decision?.diagnosis}  (${decision?.recoverability}, confidence ${decision?.confidence.toFixed(2)})`,
+      );
       console.log(`     source         ${cycle.decisionSource}`);
       console.log(`     why            ${decision?.reasoningSummary}`);
       console.log(`     proposed       ${cycle.proposedAction}`);
-      console.log(`     policy         ${cycle.policyOutcome} [${cycle.policyRule}]${cycle.overridden ? "  ← OVERRIDDEN" : ""}`);
+      console.log(
+        `     policy         ${cycle.policyOutcome} [${cycle.policyRule}]${cycle.overridden ? "  ← OVERRIDDEN" : ""}`,
+      );
       console.log(`                    ${cycle.policyReason}`);
       if (cycle.execution) {
-        console.log(`     executed       ${cycle.execution.action} via ${cycle.execution.provider} -> ${cycle.execution.status}`);
-        if (cycle.execution.externalRef) console.log(`     reference      ${cycle.execution.externalRef}`);
+        console.log(
+          `     executed       ${cycle.execution.action} via ${cycle.execution.provider} -> ${cycle.execution.status}`,
+        );
+        if (cycle.execution.externalRef)
+          console.log(`     reference      ${cycle.execution.externalRef}`);
       }
       console.log(`     state          ${cycle.finalState}`);
     }
 
     if (tick.recovered > 0) {
       console.log(`\n  ── outcome observed @ ${clock.now().toISOString()}`);
-      console.log(`     CONFIRMED payment: ${formatINR(tick.recoveredAmountPaise)} recovered`);
+      console.log(
+        `     CONFIRMED payment: ${formatINR(tick.recoveredAmountPaise)} recovered`,
+      );
     }
 
     const after = cases.requireById(caseId);
@@ -137,7 +173,9 @@ async function main(): Promise<void> {
 
   rule("3. AUDIT TRAIL — every step, in order");
   for (const entry of audit.forCase(caseId)) {
-    console.log(`  ${entry.at.toISOString()}  ${entry.actor.padEnd(18)} ${entry.event}`);
+    console.log(
+      `  ${entry.at.toISOString()}  ${entry.actor.padEnd(18)} ${entry.event}`,
+    );
   }
 
   rule("4. STATE TIMELINE");
@@ -150,13 +188,20 @@ async function main(): Promise<void> {
   const recovered = final.state === RecoveryState.RECOVERED;
   console.log(`  Final state        ${final.state}`);
   console.log(`  Decisions made     ${decisions.forCase(caseId).length}`);
-  console.log(`  Policy checks      ${policies.forCase(caseId).length} (${policies.countBlocked()} blocked)`);
+  console.log(
+    `  Policy checks      ${policies.forCase(caseId).length} (${policies.countBlocked()} blocked)`,
+  );
   console.log(`  Actions executed   ${actions.forCase(caseId).length}`);
-  console.log(`  Messages sent      ${outbox.forCase(caseId).length} (transport: outbox — not delivered to a real inbox)`);
+  console.log(
+    `  Messages sent      ${outbox.forCase(caseId).length} (transport: outbox — not delivered to a real inbox)`,
+  );
   console.log(`  Revenue at risk    ${formatINR(events.revenueAtRiskPaise())}`);
-  console.log(`  Revenue recovered  ${formatINR(final.recoveredAmountPaise ?? 0)}`);
+  console.log(
+    `  Revenue recovered  ${formatINR(final.recoveredAmountPaise ?? 0)}`,
+  );
   if (recovered && final.recoveredAt) {
-    const hours = (final.recoveredAt.getTime() - final.openedAt.getTime()) / 3_600_000;
+    const hours =
+      (final.recoveredAt.getTime() - final.openedAt.getTime()) / 3_600_000;
     console.log(`  Time to recovery   ${hours.toFixed(1)}h (simulated)`);
   }
   console.log("");

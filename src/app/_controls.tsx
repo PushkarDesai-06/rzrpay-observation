@@ -63,14 +63,7 @@ export function Controls() {
           onClick={() => start(async () => setResult(await runCycle()))}
           className="min-w-[104px]"
         >
-          {pending ? (
-            <>
-              <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-amber-400 shadow-[0_0_6px_1px_var(--color-amber-400)]" />
-              Running
-            </>
-          ) : (
-            "Run cycle"
-          )}
+          {pending ? "Running…" : "Run cycle"}
         </Button>
       </div>
 
@@ -84,15 +77,6 @@ export function Controls() {
           )}
           role="status"
         >
-          <span
-            aria-hidden
-            className={cn(
-              "size-1.5 shrink-0 rounded-full",
-              result.ok
-                ? "bg-emerald-400 shadow-[0_0_6px_1px_var(--color-emerald-400)]"
-                : "bg-rose-400 shadow-[0_0_6px_1px_var(--color-rose-400)]",
-            )}
-          />
           <span className="num">{result.ok ? "" : "Failed — "}{result.message}</span>
         </p>
       ) : null}

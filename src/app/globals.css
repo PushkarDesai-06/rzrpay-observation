@@ -75,7 +75,6 @@
   body {
     min-height: 100dvh;
     color: var(--foreground);
-    font-feature-settings: "cv11", "ss01";
     /* A single soft light source above the fold. Keeps the canvas from reading as a void. */
     background-color: var(--background);
     background-image:

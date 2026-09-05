@@ -15,31 +15,26 @@ import { cn } from "@/lib/utils";
  * The same palette is used by every badge on the console so a colour means the
  * same thing in a table cell, a header and a timeline rail.
  */
-const STATE_TONE: Record<string, { variant: BadgeVariant; pulse?: boolean }> = {
-  RECOVERED: { variant: "emerald" },
-  DETECTED: { variant: "amber", pulse: true },
-  ANALYZING: { variant: "amber", pulse: true },
-  RECOVERY_CANDIDATE: { variant: "amber", pulse: true },
-  ACTION_PLANNED: { variant: "amber", pulse: true },
-  POLICY_VALIDATED: { variant: "amber", pulse: true },
-  ACTION_EXECUTING: { variant: "amber", pulse: true },
-  WAITING_FOR_OUTCOME: { variant: "sky", pulse: true },
-  ESCALATED: { variant: "rose" },
-  FAILED: { variant: "rose" },
-  BLOCKED_BY_POLICY: { variant: "slate" },
-  NOT_RECOVERABLE: { variant: "slate" },
-  STOPPED: { variant: "slate" },
+const STATE_TONE: Record<string, BadgeVariant> = {
+  RECOVERED: "emerald",
+  DETECTED: "amber",
+  ANALYZING: "amber",
+  RECOVERY_CANDIDATE: "amber",
+  ACTION_PLANNED: "amber",
+  POLICY_VALIDATED: "amber",
+  ACTION_EXECUTING: "amber",
+  WAITING_FOR_OUTCOME: "sky",
+  ESCALATED: "rose",
+  FAILED: "rose",
+  BLOCKED_BY_POLICY: "slate",
+  NOT_RECOVERABLE: "slate",
+  STOPPED: "slate",
 };
 
 export function StatePill({ state, className }: { state: string; className?: string }) {
-  const tone = STATE_TONE[state] ?? { variant: "slate" as BadgeVariant };
+  const variant = STATE_TONE[state] ?? "slate";
   return (
-    <Badge
-      variant={tone.variant}
-      dot
-      pulse={tone.pulse}
-      className={cn("uppercase", className)}
-    >
+    <Badge variant={variant} className={cn("uppercase", className)}>
       {state.replace(/_/g, " ")}
     </Badge>
   );
@@ -225,31 +220,16 @@ export function Panel({
   meta,
   children,
   className,
-  tone,
 }: {
   title: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
-  /** Optional coloured indicator beside the title for panels that demand attention. */
-  tone?: "emerald" | "amber" | "rose" | "sky";
 }) {
-  const dot = tone
-    ? {
-        emerald: "bg-emerald-400 shadow-[0_0_8px_1px_var(--color-emerald-400)]",
-        amber: "bg-amber-400 shadow-[0_0_8px_1px_var(--color-amber-400)]",
-        rose: "bg-rose-400 shadow-[0_0_8px_1px_var(--color-rose-400)]",
-        sky: "bg-sky-400 shadow-[0_0_8px_1px_var(--color-sky-400)]",
-      }[tone]
-    : null;
-
   return (
     <section className={cn("surface overflow-hidden rounded-lg", className)}>
       <header className="flex items-center justify-between gap-3 border-b border-white/6 bg-white/1.5 px-4 py-2.5">
-        <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-tight">
-          {dot ? <span aria-hidden className={cn("size-1.5 rounded-full", dot)} /> : null}
-          {title}
-        </h2>
+        <h2 className="text-[13px] font-semibold tracking-tight">{title}</h2>
         {meta ? (
           <div className="text-muted-foreground flex items-center gap-2 num text-[11px]">{meta}</div>
         ) : null}
